@@ -65,7 +65,7 @@ impl Parser<BufReader<File>> {
 impl<B: BufRead> Parser<B> {
     fn expect_text(&mut self) -> Result<String> {
         match self.xml.read_event(&mut self.buf) {
-            Ok(XmlEv::Text(e) | XmlEv::CData(e)) => {
+            Ok(XmlEv::Text(e)) | Ok(XmlEv::CData(e)) => {
                 let txt = e.unescaped()?;
                 Ok(str::from_utf8(&txt)?.into())
             }
@@ -76,7 +76,7 @@ impl<B: BufRead> Parser<B> {
 
     fn expect_text_trim(&mut self, close_tag: &[u8]) -> Result<String> {
         match self.xml.read_event(&mut self.buf) {
-            Ok(XmlEv::Text(e) | XmlEv::CData(e)) => {
+            Ok(XmlEv::Text(e)) | Ok(XmlEv::CData(e)) => {
                 let txt = e.unescaped()?;
                 let txt = str::from_utf8(&txt)?.trim().into();
                 if !close_tag.is_empty() {
@@ -118,7 +118,7 @@ impl<B: BufRead> Parser<B> {
 
     fn expect_start(&mut self) -> Result<Vec<u8>> {
         match self.xml.read_event(&mut self.buf) {
-            Ok(XmlEv::Start(e) | XmlEv::Empty(e)) => Ok(Vec::from(e.name())),
+            Ok(XmlEv::Start(e)) | Ok(XmlEv::Empty(e)) => Ok(Vec::from(e.name())),
             Ok(ev) => Err(Error::Parse(format!("expected start tag, found {:?}", ev))),
             Err(e) => Err(e.into()),
         }
@@ -226,7 +226,7 @@ impl<B: BufRead> Parser<B> {
                         });
                     }
                 }
-                Ok(XmlEv::Text(_) | XmlEv::CData(_)) => {
+                Ok(XmlEv::Text(_)) | Ok(XmlEv::CData(_)) => {
                     return Err(Error::Parse("Unexpected doc text out of element".into()));
                 }
                 Ok(XmlEv::End(ref e)) => {
@@ -309,7 +309,7 @@ impl<B: BufRead> Parser<B> {
         T: Clone,
     {
         match self.xml.read_event(&mut self.buf) {
-            Ok(XmlEv::Start(ref e) | XmlEv::Empty(ref e)) => {
+            Ok(XmlEv::Start(ref e)) | Ok(XmlEv::Empty(ref e)) => {
                 let e = e.to_owned();
                 Ok(Some(self.parse_expr_content(e.attributes(), e.name())?))
             }
@@ -380,7 +380,7 @@ impl<B: BufRead> Parser<B> {
 
         loop {
             match self.xml.read_event(&mut self.buf) {
-                Ok(XmlEv::Empty(ref e) | XmlEv::Start(ref e)) => match e.name() {
+                Ok(XmlEv::Empty(ref e)) | Ok(XmlEv::Start(ref e)) => match e.name() {
                     b"item" => {
                         let name = expect_attribute(e.attributes(), b"name")?;
                         let (tag, value) = self.expect_text_element()?;
